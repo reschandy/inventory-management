@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
 from pydantic import BaseModel
+from datetime import datetime, timedelta
 from mock_data import inventory_items, orders, demand_forecasts, backlog_items, spending_summary, monthly_spending, category_spending, recent_transactions, purchase_orders
 
 app = FastAPI(title="Factory Inventory Management System")
@@ -80,6 +81,7 @@ class Order(BaseModel):
     actual_delivery: Optional[str] = None
     warehouse: Optional[str] = None
     category: Optional[str] = None
+    source: Optional[str] = None  # "customer" | "restocking"
 
 class DemandForecast(BaseModel):
     id: str
@@ -141,17 +143,53 @@ def get_inventory_item(item_id: str):
         raise HTTPException(status_code=404, detail="Item not found")
     return item
 
+class CreateRestockingOrderRequest(BaseModel):
+    items: List[dict]
+    total_value: float
+
+
 @app.get("/api/orders", response_model=List[Order])
 def get_orders(
     warehouse: Optional[str] = None,
     category: Optional[str] = None,
     status: Optional[str] = None,
-    month: Optional[str] = None
+    month: Optional[str] = None,
+    source: Optional[str] = None
 ):
     """Get all orders with optional filtering"""
     filtered_orders = apply_filters(orders, warehouse, category, status)
     filtered_orders = filter_by_month(filtered_orders, month)
+    if source:
+        filtered_orders = [o for o in filtered_orders if o.get("source") == source]
     return filtered_orders
+
+
+@app.post("/api/restocking-orders", response_model=Order)
+def create_restocking_order(request: CreateRestockingOrderRequest):
+    """Create a restocking order and append to in-memory orders list"""
+    now = datetime.utcnow()
+    expected_delivery = now + timedelta(days=14)
+    existing_restocking = [o for o in orders if o.get("source") == "restocking"]
+    order_number = f"RST-{now.year}-{len(existing_restocking) + 1:04d}"
+    new_order = {
+        "id": str(len(orders) + 1),
+        "order_number": order_number,
+        "customer": "Internal Restocking",
+        "items": request.items,
+        "status": "Processing",
+        "order_date": now.isoformat(),
+        "expected_delivery": expected_delivery.isoformat(),
+        "total_value": request.total_value,
+        "source": "restocking"
+    }
+    orders.append(new_order)
+    return new_order
+
+
+@app.get("/api/restocking-orders", response_model=List[Order])
+def get_restocking_orders():
+    """Get all restocking orders"""
+    return [o for o in orders if o.get("source") == "restocking"]
 
 @app.get("/api/orders/{order_id}", response_model=Order)
 def get_order(order_id: str):

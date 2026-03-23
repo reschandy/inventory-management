@@ -6,6 +6,7 @@ export default {
     orders: '注文',
     finance: '財務',
     demandForecast: '需要予測',
+    restocking: 'Restocking',
     companyName: '触媒コンポーネンツ',
     subtitle: '在庫管理システム'
   },
@@ -165,6 +166,26 @@ export default {
       date: '日付',
       amount: '金額'
     }
+  },
+
+  // Restocking
+  restocking: {
+    title: 'Restocking',
+    description: 'Auto-select items to restock based on demand forecasts and available budget',
+    budgetLabel: 'Available Budget',
+    selectedItems: 'Recommended Items',
+    totalCost: 'Estimated Total',
+    remaining: 'Remaining',
+    placeOrder: 'Place Restocking Order',
+    placing: 'Placing Order...',
+    noItems: 'No eligible items found within this budget',
+    success: 'Restocking order placed successfully',
+    skuCol: 'SKU',
+    nameCol: 'Item',
+    trendCol: 'Trend',
+    qtyCol: 'Qty (Forecasted)',
+    unitCostCol: 'Unit Cost',
+    totalCol: 'Total'
   },
 
   // Demand Forecast
